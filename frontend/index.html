@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMS | Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .main-card {
+            width: 100%;
+            max-width: 480px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            text-align: center;
+            padding: 24px;
+        }
+        .role-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .role-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .role-admin   { background-color: #fff3cd; border-color: #ffc107; color: #856404; }
+        .role-doctor  { background-color: #d1e7dd; border-color: #198754; color: #0f5132; }
+        .role-patient { background-color: #cfe2ff; border-color: #0d6efd; color: #084298; }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin-bottom: 12px;
+        }
+        .back-btn:hover { color: #333; }
+    </style>
+</head>
+<body>
+    <div class="card main-card">
+
+        <div class="card-header">
+            <h4 class="mb-1"> Hospital Management System</h4>
+            <small>23F3000598</small>
+        </div>
+
+        <div class="card-body p-4">
+
+            <!-- STEP 1: Role Selection -->
+            <div id="roleSelection">
+                <h6 class="text-center text-muted mb-4">Select your role to continue</h6>
+
+                <div class="d-flex flex-column gap-3">
+                    <button class="role-btn role-admin"
+                            onclick="selectRole('admin')">
+                         &nbsp; Admin
+                    </button>
+                    <button class="role-btn role-doctor"
+                            onclick="selectRole('doctor')">
+                        &nbsp; Doctor
+                    </button>
+                    <button class="role-btn role-patient"
+                            onclick="selectRole('patient')">
+                        &nbsp; Patient
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Login Form (shown after role selected) -->
+            <div id="loginForm" class="d-none">
+
+                <button class="back-btn" onclick="goBack()">
+                    ← Back to role selection
+                </button>
+
+                <div class="alert alert-info py-2 mb-3" id="roleIndicator"></div>
+                <div class="alert alert-danger d-none" id="errorMsg"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username"
+                           placeholder="Enter username">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password"
+                           placeholder="Enter password">
+                </div>
+
+                <button class="btn btn-primary w-100 mt-1"
+                        onclick="handleLogin()">
+                    Login
+                </button>
+
+                <!-- Show register link only for patient -->
+                <div id="registerLink" class="d-none">
+                    <hr>
+                    <p class="text-center mb-0">
+                        New Patient?
+                        <a href="register.html">Register here</a>
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // If already login, continue
+        const existingToken = localStorage.getItem('token');
+        const existingRole  = localStorage.getItem('role');
+        const existingName  = localStorage.getItem('username');
+
+        if (existingToken && existingRole) {
+            // Show a continue banner instead of auto redirecting
+            const banner = document.createElement('div');
+            banner.className = 'alert alert-info mx-4 mt-3 d-flex justify-content-between align-items-center';
+            banner.innerHTML = `
+                <span>Already logged in as <strong>${existingName}</strong> (${existingRole})</span>
+                <div>
+                    <button class="btn btn-sm btn-primary me-2"
+                            onclick="redirectToDashboard('${existingRole}')">
+                        Continue
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary"
+                            onclick="clearAndStay()">
+                        Switch Account
+                    </button>
+                </div>
+            `;
+            document.querySelector('.card-body').prepend(banner);
+        }
+
+        function clearAndStay() {
+            localStorage.clear();
+            window.location.reload();
+        }
+
+        let selectedRole = '';
+
+        function selectRole(role) {
+            selectedRole = role;
+
+            // Show login form, hide role selection
+            document.getElementById('roleSelection').classList.add('d-none');
+            document.getElementById('loginForm').classList.remove('d-none');
+
+            // Show role indicator message
+            const indicator = document.getElementById('roleIndicator');
+            const roleLabels = {
+                admin  : 'Logging in as Admin',
+                doctor : 'Logging in as Doctor',
+                patient: 'Logging in as Patient'
+            };
+            indicator.textContent = roleLabels[role];
+
+            // Show register link only for patient
+            if (role === 'patient') {
+                document.getElementById('registerLink').classList.remove('d-none');
+            } else {
+                document.getElementById('registerLink').classList.add('d-none');
+            }
+
+            // Clear any previous inputs
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('errorMsg').classList.add('d-none');
+
+            // Focus on username field
+            document.getElementById('username').focus();
+        }
+
+        function goBack() {
+            selectedRole = '';
+            document.getElementById('loginForm').classList.add('d-none');
+            document.getElementById('roleSelection').classList.remove('d-none');
+        }
+
+        function redirectToDashboard(role) {
+            if (role === 'admin')   window.location.href = 'admin_dashboard.html';
+            if (role === 'doctor')  window.location.href = 'doctor_dashboard.html';
+            if (role === 'patient') window.location.href = 'patient_dashboard.html';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.remove('d-none');
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                showError('Please enter username and password');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body   : JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Verify the role matches what user selected
+                    if (data.role !== selectedRole) {
+                        showError(
+                            `This account is not a ${selectedRole}. ` +
+                            `Please go back and select correct role.`
+                        );
+                        return;
+                    }
+
+                    localStorage.setItem('token',    data.access_token);
+                    localStorage.setItem('role',     data.role);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('user_id',  data.user_id);
+                    redirectToDashboard(data.role);
+
+                } else {
+                    showError(data.message || 'Login failed');
+                }
+            } catch (err) {
+                showError('Cannot connect to server. Make sure Flask is running.');
+            }
+        }
+
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && selectedRole) handleLogin();
+        });
+    </script>
+</body>
+</html>

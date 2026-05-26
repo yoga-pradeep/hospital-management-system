@@ -1,0 +1,623 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMS | Doctor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f4f8; }
+        .navbar { background-color: #198754; }
+        .stat-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .section-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">HMS - Doctor Panel</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white" id="doctorName"></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-4">
+
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-success fw-bold" id="todayCount">-</h2>
+                    <p class="text-muted mb-0">Today's Appointments</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-primary fw-bold" id="totalPatients">-</h2>
+                    <p class="text-muted mb-0">Total Patients</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="doctorTabs">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="showTab('today')">Today</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('all')">All Appointments</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('patients')">My Patients</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('availability')">Set Availability</button>
+            </li>
+        </ul>
+
+        <!-- TODAY TAB -->
+        <div id="tab-today">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">Today's Appointments</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Patient</th>
+                                <th>Time Slot</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="todayTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL APPOINTMENTS TAB -->
+        <div id="tab-all" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">All Appointments</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Patient</th>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                                <th>Treatment Record</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PATIENTS TAB -->
+        <div id="tab-patients" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">My Patients</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Age</th>
+                                <th>Blood Group</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVAILABILITY TAB -->
+        <div id="tab-availability" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">Set Availability (Next 7 Days)</h5>
+                <p class="text-muted">Select dates you are available for appointments:</p>
+                <div id="dateCheckboxes" class="mb-3"></div>
+                <button class="btn btn-success" onclick="saveAvailability()">
+                    Save Availability
+                </button>
+                <div class="alert alert-success mt-3 d-none" id="availSuccess">
+                    Availability updated successfully!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Treatment Modal -->
+    <div class="modal fade" id="treatmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Treatment Details</h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="treatmentError"></div>
+                    <input type="hidden" id="treatmentApptId">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Diagnosis <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="tDiagnosis" rows="2"
+                                  placeholder="Enter diagnosis..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Prescription <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="tPrescription" rows="2"
+                                  placeholder="Enter medicines and dosage..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="tNotes" rows="2"
+                                  placeholder="Additional observations..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Next Visit</label>
+                        <input type="text" class="form-control" id="tNextVisit"
+                               placeholder="e.g. After 2 weeks, 15-05-2026">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success"
+                            onclick="saveTreatment()">Save Treatment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient History Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Patient History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="historyBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const token    = localStorage.getItem('token');
+        const role     = localStorage.getItem('role');
+        const username = localStorage.getItem('username');
+
+        if (!token || role !== 'doctor') {
+            window.location.href = '/index.html';
+        }
+
+        document.getElementById('doctorName').textContent = 'Dr. ' + username;
+
+        const authHeader = {
+            'Content-Type' : 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+
+        
+        // Actions column buttons
+        
+        function buildActionBtns(appt) {
+            if (appt.status === 'Booked') {
+                return `
+                    <button class="btn btn-sm btn-success me-1"
+                            onclick="markComplete(${appt.appointment_id})">
+                        Complete
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            onclick="markCancelled(${appt.appointment_id})">
+                        Cancel
+                    </button>
+                `;
+            }
+            if (appt.status === 'Completed') {
+                return `<span class="badge bg-success">Done</span>`;
+            }
+            return `<span class="text-muted">-</span>`;
+        }
+
+        
+        // Treatment Record column
+        
+        function buildTreatmentCell(appt) {
+            if (appt.status !== 'Completed') {
+                return `<span class="text-muted">-</span>`;
+            }
+
+            if (appt.has_treatment && appt.treatment) {
+                return `
+                    <div class="small">
+                        <p class="mb-1">
+                            <strong>Diagnosis:</strong>
+                            ${appt.treatment.diagnosis || '-'}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Prescription:</strong>
+                            ${appt.treatment.prescription || '-'}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Notes:</strong>
+                            ${appt.treatment.notes || '-'}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Next Visit:</strong>
+                            ${appt.treatment.next_visit || '-'}
+                        </p>
+                    </div>
+                `;
+            }
+
+            return `
+                <button class="btn btn-sm btn-primary"
+                        onclick="openTreatmentModal(${appt.appointment_id})">
+                    + Add Treatment
+                </button>
+            `;
+        }
+
+        // Load today tab
+        async function loadDashboard() {
+            const res  = await fetch('/api/doctor/dashboard', { headers: authHeader });
+            const data = await res.json();
+
+            document.getElementById('todayCount').textContent    = data.todays_appointments.length;
+            document.getElementById('totalPatients').textContent = data.total_patients;
+
+            const tbody = document.getElementById('todayTableBody');
+            tbody.innerHTML = '';
+
+            if (data.todays_appointments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            No appointments today
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            data.todays_appointments.forEach(appt => {
+                const badgeColor =
+                    appt.status === 'Booked'    ? 'bg-primary'   :
+                    appt.status === 'Completed' ? 'bg-success'   : 'bg-secondary';
+
+                tbody.innerHTML += `
+                    <tr id="today-${appt.appointment_id}">
+                        <td>${appt.patient_name}</td>
+                        <td>${appt.time_slot}</td>
+                        <td>${appt.reason || '-'}</td>
+                        <td>
+                            <span class="badge ${badgeColor}">
+                                ${appt.status}
+                            </span>
+                        </td>
+                        <td>${buildActionBtns(appt)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Load all appointments tab
+        async function loadAllAppointments() {
+            const res   = await fetch('/api/doctor/appointments', { headers: authHeader });
+            const data  = await res.json();
+            const tbody = document.getElementById('allTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            No appointments found
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            data.forEach(appt => {
+                const badgeColor =
+                    appt.status === 'Booked'    ? 'bg-primary'   :
+                    appt.status === 'Completed' ? 'bg-success'   : 'bg-secondary';
+
+                tbody.innerHTML += `
+                    <tr id="all-${appt.appointment_id}">
+                        <td>${appt.patient_name}</td>
+                        <td>${appt.date}</td>
+                        <td>${appt.time_slot}</td>
+                        <td>${appt.reason || '-'}</td>
+                        <td>
+                            <span class="badge ${badgeColor}">
+                                ${appt.status}
+                            </span>
+                        </td>
+                        <td>${buildActionBtns(appt)}</td>
+                        <td>${buildTreatmentCell(appt)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Mark Complete
+        async function markComplete(apptId) {
+            const res  = await fetch(`/api/doctor/appointments/${apptId}/status`, {
+                method : 'PUT',
+                headers: authHeader,
+                body   : JSON.stringify({ status: 'Completed' })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                await loadAllAppointments();
+                await loadDashboard();
+            } else {
+                alert(data.message || 'Failed');
+            }
+        }
+
+        // Mark Cancelled
+        async function markCancelled(apptId) {
+            if (!confirm('Cancel this appointment?')) return;
+
+            const res  = await fetch(`/api/doctor/appointments/${apptId}/status`, {
+                method : 'PUT',
+                headers: authHeader,
+                body   : JSON.stringify({ status: 'Cancelled' })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                await loadAllAppointments();
+                await loadDashboard();
+            } else {
+                alert(data.message || 'Failed');
+            }
+        }
+
+        // Open treatment modal
+        function openTreatmentModal(apptId) {
+            document.getElementById('treatmentApptId').value = apptId;
+            document.getElementById('tDiagnosis').value      = '';
+            document.getElementById('tPrescription').value   = '';
+            document.getElementById('tNotes').value          = '';
+            document.getElementById('tNextVisit').value      = '';
+            document.getElementById('treatmentError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('treatmentModal')).show();
+        }
+
+        // Save treatment
+        async function saveTreatment() {
+            const apptId       = document.getElementById('treatmentApptId').value;
+            const diagnosis    = document.getElementById('tDiagnosis').value.trim();
+            const prescription = document.getElementById('tPrescription').value.trim();
+
+            if (!diagnosis || !prescription) {
+                const err = document.getElementById('treatmentError');
+                err.textContent = 'Diagnosis and Prescription are required';
+                err.classList.remove('d-none');
+                return;
+            }
+
+            const res  = await fetch(`/api/doctor/appointments/${apptId}/treatment`, {
+                method : 'POST',
+                headers: authHeader,
+                body   : JSON.stringify({
+                    diagnosis   : diagnosis,
+                    prescription: prescription,
+                    notes       : document.getElementById('tNotes').value,
+                    next_visit  : document.getElementById('tNextVisit').value
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('treatmentModal')
+                ).hide();
+                // Reload treatment record column updates 
+                await loadAllAppointments();
+            } else {
+                const err = document.getElementById('treatmentError');
+                err.textContent = data.message || 'Failed to save treatment';
+                err.classList.remove('d-none');
+            }
+        }
+
+        // Load patients tab
+        async function loadPatients() {
+            const res      = await fetch('/api/doctor/patients', { headers: authHeader });
+            const patients = await res.json();
+            const tbody    = document.getElementById('patientsTableBody');
+            tbody.innerHTML = '';
+
+            if (patients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            No patients assigned yet
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            patients.forEach(pat => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${pat.name}</td>
+                        <td>${pat.email}</td>
+                        <td>${pat.age || '-'}</td>
+                        <td>${pat.blood_group || '-'}</td>
+                        <td>${pat.phone || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info"
+                                    onclick="viewHistory(${pat.patient_id})">
+                                View History
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // View patient history modal
+        async function viewHistory(patientId) {
+            const res  = await fetch(
+                `/api/doctor/patients/${patientId}/treatments`,
+                { headers: authHeader }
+            );
+            const data = await res.json();
+            const body = document.getElementById('historyBody');
+
+            body.innerHTML = `
+                <h6>Patient: <strong>${data.patient_name}</strong></h6>
+                <hr>
+            `;
+
+            if (data.records.length === 0) {
+                body.innerHTML += '<p class="text-muted">No records found.</p>';
+            } else {
+                data.records.forEach(rec => {
+                    const badgeColor =
+                        rec.status === 'Booked'    ? 'bg-primary'   :
+                        rec.status === 'Completed' ? 'bg-success'   : 'bg-secondary';
+
+                    let treatmentHtml = '<p class="text-muted mb-0">No treatment recorded</p>';
+                    if (rec.treatment) {
+                        treatmentHtml = `
+                            <div class="mt-2 p-2 bg-light rounded">
+                                <p class="mb-1">
+                                    <strong>Diagnosis:</strong>
+                                    ${rec.treatment.diagnosis || '-'}
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Prescription:</strong>
+                                    ${rec.treatment.prescription || '-'}
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Notes:</strong>
+                                    ${rec.treatment.notes || '-'}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Next Visit:</strong>
+                                    ${rec.treatment.next_visit || '-'}
+                                </p>
+                            </div>
+                        `;
+                    }
+
+                    body.innerHTML += `
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>${rec.date} — ${rec.time_slot}</strong>
+                                <span class="badge ${badgeColor}">${rec.status}</span>
+                            </div>
+                            <p class="mb-1 mt-1">
+                                <small>Reason: ${rec.reason || '-'}</small>
+                            </p>
+                            ${treatmentHtml}
+                        </div>
+                    `;
+                });
+            }
+
+            new bootstrap.Modal(document.getElementById('historyModal')).show();
+        }
+
+        // Availability checkboxes
+        function generateDateCheckboxes() {
+            const container = document.getElementById('dateCheckboxes');
+            container.innerHTML = '';
+            const today = new Date();
+
+            for (let i = 1; i <= 7; i++) {
+                const d       = new Date(today);
+                d.setDate(today.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const dayName = d.toLocaleDateString('en-IN', { weekday: 'long' });
+
+                container.innerHTML += `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox"
+                               value="${dateStr}" id="date_${i}">
+                        <label class="form-check-label" for="date_${i}">
+                            ${dayName} — ${dateStr}
+                        </label>
+                    </div>
+                `;
+            }
+        }
+
+        // Save availability
+        async function saveAvailability() {
+            const checkboxes = document.querySelectorAll('#dateCheckboxes input:checked');
+            const dates      = Array.from(checkboxes).map(cb => cb.value);
+
+            const res = await fetch('/api/doctor/availability', {
+                method : 'POST',
+                headers: authHeader,
+                body   : JSON.stringify({ dates })
+            });
+
+            if (res.ok) {
+                document.getElementById('availSuccess').classList.remove('d-none');
+                setTimeout(() => {
+                    document.getElementById('availSuccess').classList.add('d-none');
+                }, 3000);
+            }
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            ['today', 'all', 'patients', 'availability'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('d-none');
+            });
+            document.getElementById('tab-' + tab).classList.remove('d-none');
+
+            document.querySelectorAll('#doctorTabs .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (tab === 'all')          loadAllAppointments();
+            if (tab === 'patients')     loadPatients();
+            if (tab === 'availability') generateDateCheckboxes();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/index.html';
+        }
+
+        // Initial load
+        loadDashboard();
+    </script>
+</body>
+</html>

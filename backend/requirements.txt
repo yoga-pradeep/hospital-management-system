@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-jwt-extended
+werkzeug
+flask-cors
+celery
+redis
+flask-caching
+flask-mail

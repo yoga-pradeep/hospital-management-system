@@ -1,0 +1,602 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMS | Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f4f8; }
+        .navbar { background-color: #0d6efd; }
+        .stat-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .section-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">HMS - Admin Panel</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white" id="adminName"></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-4">
+
+        <!-- Stats Row -->
+        <div class="row mb-4" id="statsRow">
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-primary fw-bold" id="totalDoctors">-</h2>
+                    <p class="text-muted mb-0">Total Doctors</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-success fw-bold" id="totalPatients">-</h2>
+                    <p class="text-muted mb-0">Total Patients</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-warning fw-bold" id="totalAppointments">-</h2>
+                    <p class="text-muted mb-0">Total Appointments</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="adminTabs">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="showTab('doctors')">Doctors</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('patients')">Patients</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('appointments')">Appointments</button>
+            </li>
+        </ul>
+
+        <!-- DOCTORS TAB -->
+        <div id="tab-doctors">
+            <div class="card section-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Manage Doctors</h5>
+                    <button class="btn btn-primary btn-sm"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addDoctorModal">
+                        + Add Doctor
+                    </button>
+                </div>
+                <input type="text" class="form-control mb-3" id="doctorSearch"
+                       placeholder="Search by name or department..."
+                       oninput="loadDoctors()">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Qualification</th>
+                                <th>Experience</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="doctorsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PATIENTS TAB -->
+        <div id="tab-patients" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">Manage Patients</h5>
+                <input type="text" class="form-control mb-3" id="patientSearch"
+                       placeholder="Search by name, email or phone"
+                       oninput="loadPatients()">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Age</th>
+                                <th>Blood Group</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- APPOINTMENTS TAB -->
+        <div id="tab-appointments" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">All Appointments</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Doctor Modal -->
+    <div class="modal fade" id="editDoctorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Doctor Profile</h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="editDoctorError"></div>
+                    <input type="hidden" id="editDoctorId">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="editDoctorUsername">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editDoctorEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <select class="form-select" id="editDoctorDept"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" class="form-control" id="editDoctorQual">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Experience (Years)</label>
+                        <input type="number" class="form-control" id="editDoctorExp">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="editDoctorPhone">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning"
+                            onclick="saveEditDoctor()">Update Doctor</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Doctor Modal -->
+    <div class="modal fade" id="addDoctorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Doctor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="addDoctorError"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="newDoctorUsername">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="newDoctorEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="newDoctorPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <select class="form-select" id="newDoctorDept"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" class="form-control" id="newDoctorQual"
+                               placeholder="MBBS, MD etc.">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Experience (Years)</label>
+                        <input type="number" class="form-control" id="newDoctorExp">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="newDoctorPhone">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary"
+                            onclick="addDoctor()">Add Doctor</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check login
+        const token    = localStorage.getItem('token');
+        const role     = localStorage.getItem('role');
+        const username = localStorage.getItem('username');
+
+        if (!token || role !== 'admin') {
+            window.location.href = '../index.html';
+        }
+
+        document.getElementById('adminName').textContent = 'Welcome, ' + username;
+
+        // Auth header used in every API call
+        const authHeader = {
+            'Content-Type' : 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+
+        // Load dashboard stats on page load
+        async function loadStats() {
+            const res  = await fetch('/api/admin/dashboard',
+                                     { headers: authHeader });
+            const data = await res.json();
+            document.getElementById('totalDoctors').textContent      = data.total_doctors;
+            document.getElementById('totalPatients').textContent     = data.total_patients;
+            document.getElementById('totalAppointments').textContent = data.total_appointments;
+        }
+
+        // Load doctors table
+        async function loadDoctors() {
+            const search = document.getElementById('doctorSearch').value;
+            const res    = await fetch(
+                `/api/admin/doctors?search=${search}`,
+                { headers: authHeader }
+            );
+            const doctors = await res.json();
+            const tbody   = document.getElementById('doctorsTableBody');
+            tbody.innerHTML = '';
+
+            doctors.forEach(doc => {
+                const status = doc.is_active
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-danger">Blacklisted</span>';
+
+                const btnLabel = doc.is_active ? 'Blacklist' : 'Activate';
+                const btnClass = doc.is_active ? 'btn-danger' : 'btn-success';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${doc.username}</td>
+                        <td>${doc.email}</td>
+                        <td>${doc.department || '-'}</td>
+                        <td>${doc.qualification || '-'}</td>
+                        <td>${doc.experience_years} yrs</td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1"
+                                    onclick="openEditDoctor(${doc.doctor_id},
+                             '${doc.username}','${doc.email}',
+                             '${doc.qualification || ''}',
+                             ${doc.experience_years},
+                             '${doc.phone || ''}')">
+                                Edit
+                            </button>
+                            <button class="btn btn-sm ${btnClass} me-1"
+                                    onclick="toggleUser(${doc.user_id})">
+                                ${btnLabel}
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="removeDoctor(${doc.doctor_id})">
+                                Remove
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Load patients table
+        async function loadPatients() {
+            const search = document.getElementById('patientSearch').value;
+            const res    = await fetch(
+                `/api/admin/patients?search=${search}`,
+                { headers: authHeader }
+            );
+            const patients = await res.json();
+            const tbody    = document.getElementById('patientsTableBody');
+            tbody.innerHTML = '';
+
+            patients.forEach(pat => {
+                const status = pat.is_active
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-danger">Blacklisted</span>';
+
+                const btnLabel = pat.is_active ? 'Blacklist' : 'Activate';
+                const btnClass = pat.is_active ? 'btn-danger' : 'btn-success';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${pat.username}</td>
+                        <td>${pat.email}</td>
+                        <td>${pat.age || '-'}</td>
+                        <td>${pat.blood_group || '-'}</td>
+                        <td>${pat.phone || '-'}</td>
+                        <td>${pat.address || '-'}</td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="btn btn-sm ${btnClass} me-1"
+                                    onclick="toggleUser(${pat.user_id})">
+                                ${btnLabel}
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    onclick="removePatient(${pat.patient_id})">
+                                Remove
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Load appointments table
+        async function loadAppointments() {
+            const res  = await fetch('/api/admin/appointments',
+                                     { headers: authHeader });
+            const data = await res.json();
+            const tbody = document.getElementById('appointmentsTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(appt => {
+                const badgeColor =
+                    appt.status === 'Booked'    ? 'bg-primary' :
+                    appt.status === 'Completed' ? 'bg-success' : 'bg-secondary';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${appt.appointment_id}</td>
+                        <td>${appt.patient_name}</td>
+                        <td>${appt.doctor_name}</td>
+                        <td>${appt.date}</td>
+                        <td>${appt.time_slot}</td>
+                        <td><span class="badge ${badgeColor}">${appt.status}</span></td>
+                        <td>${appt.reason || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Toggle user active/blacklist
+        async function toggleUser(userId) {
+            const res = await fetch(
+                `/api/admin/users/${userId}/toggle`,
+                { method: 'PUT', headers: authHeader }
+            );
+            if (res.ok) {
+                loadDoctors();
+                loadPatients();
+                loadStats();
+            }
+        }
+
+        // Load departments for add doctor dropdown
+        async function loadDepartments() {
+            const res   = await fetch('/api/admin/departments',
+                                      { headers: authHeader });
+            const depts = await res.json();
+            const sel   = document.getElementById('newDoctorDept');
+            sel.innerHTML = '<option value="">Select Department</option>';
+            depts.forEach(d => {
+                sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+        }
+
+        // Open edit doctor 
+        async function openEditDoctor(doctorId, username, email, qualification, experience, phone) {
+            document.getElementById('editDoctorId').value       = doctorId;
+            document.getElementById('editDoctorUsername').value = username;
+            document.getElementById('editDoctorEmail').value    = email;
+            document.getElementById('editDoctorQual').value     = qualification;
+            document.getElementById('editDoctorExp').value      = experience;
+            document.getElementById('editDoctorPhone').value    = phone;
+            document.getElementById('editDoctorError').classList.add('d-none');
+
+            // Load departments 
+            const res   = await fetch('/api/admin/departments', { headers: authHeader });
+            const depts = await res.json();
+            const sel   = document.getElementById('editDoctorDept');
+            sel.innerHTML = '<option value="">Select Department</option>';
+            depts.forEach(d => {
+                sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+
+            new bootstrap.Modal(document.getElementById('editDoctorModal')).show();
+        }
+
+        // Save updated doctor profile
+        async function saveEditDoctor() {
+            const doctorId = document.getElementById('editDoctorId').value;
+            const res = await fetch(`/api/admin/doctors/${doctorId}`, {
+                method : 'PUT',
+                headers: authHeader,
+                body   : JSON.stringify({
+                    username        : document.getElementById('editDoctorUsername').value,
+                    email           : document.getElementById('editDoctorEmail').value,
+                    qualification   : document.getElementById('editDoctorQual').value,
+                    experience_years: parseInt(document.getElementById('editDoctorExp').value) || 0,
+                    phone           : document.getElementById('editDoctorPhone').value,
+                    department_id   : document.getElementById('editDoctorDept').value
+                                      ? parseInt(document.getElementById('editDoctorDept').value)
+                                      : null
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('editDoctorModal')
+                ).hide();
+                loadDoctors();
+            } else {
+                const err = document.getElementById('editDoctorError');
+                err.textContent = data.message;
+                err.classList.remove('d-none');
+            }
+        }
+
+        // Add new doctor
+        async function addDoctor() {
+            const username      = document.getElementById('newDoctorUsername').value.trim();
+            const email         = document.getElementById('newDoctorEmail').value.trim();
+            const password      = document.getElementById('newDoctorPassword').value.trim();
+            const department_id = document.getElementById('newDoctorDept').value;
+            const qualification = document.getElementById('newDoctorQual').value.trim();
+            const experience    = document.getElementById('newDoctorExp').value;
+            const phone         = document.getElementById('newDoctorPhone').value.trim();
+
+            if (!username || !email || !password) {
+                const err = document.getElementById('addDoctorError');
+                err.textContent = 'Username, email and password are required';
+                err.classList.remove('d-none');
+                return;
+            }
+
+            const res = await fetch('/api/admin/doctors', {
+                method : 'POST',
+                headers: authHeader,
+                body   : JSON.stringify({
+                    username,
+                    email,
+                    password,
+                    department_id : department_id ? parseInt(department_id) : null,
+                    qualification,
+                    experience_years: experience ? parseInt(experience) : 0,
+                    phone
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('addDoctorModal')
+                ).hide();
+                loadDoctors();
+                loadStats();
+            } else {
+                const err = document.getElementById('addDoctorError');
+                err.textContent = data.message;
+                err.classList.remove('d-none');
+            }
+        }
+
+        // Permanently remove doctor from system
+        async function removeDoctor(doctorId) {
+            if (!confirm(
+                'Are you sure you want to permanently remove this doctor?\n' +
+                'This will also delete all their appointments.'
+            )) return;
+
+            const res  = await fetch(`/api/admin/doctors/${doctorId}`, {
+                method : 'DELETE',
+                headers: authHeader
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                loadDoctors();
+                loadStats();
+            } else {
+                alert(data.message || 'Failed to remove doctor');
+            }
+        }
+
+        // Permanently remove patient from system
+        async function removePatient(patientId) {
+            if (!confirm(
+                'Are you sure you want to permanently remove this patient?\n' +
+                'This will also delete all their appointments.'
+            )) return;
+
+            const res  = await fetch(`/api/admin/patients/${patientId}`, {
+                method : 'DELETE',
+                headers: authHeader
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                loadPatients();
+                loadStats();
+            } else {
+                alert(data.message || 'Failed to remove patient');
+            }
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            document.getElementById('tab-doctors').classList.add('d-none');
+            document.getElementById('tab-patients').classList.add('d-none');
+            document.getElementById('tab-appointments').classList.add('d-none');
+            document.getElementById('tab-' + tab).classList.remove('d-none');
+
+            document.querySelectorAll('#adminTabs .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (tab === 'doctors')      loadDoctors();
+            if (tab === 'patients')     loadPatients();
+            if (tab === 'appointments') loadAppointments();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '../index.html';
+        }
+
+        // Initial load
+        loadStats();
+        loadDoctors();
+        loadDepartments();
+    </script>
+</body>
+</html>

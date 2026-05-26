@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMS | Patient Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f4f8; }
+        .navbar { background-color: #6f42c1; }
+        .stat-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .section-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        .doctor-card {
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    
+    <nav class="navbar navbar-dark px-4 py-3">
+        <span class="navbar-brand fw-bold">HMS - Patient Panel</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white" id="patientName"></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-4">
+
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card text-center p-4">
+                    <h2 class="text-primary fw-bold" id="upcomingCount">-</h2>
+                    <p class="text-muted mb-0">Upcoming Appointments</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="patientTabs">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="showTab('upcoming')">Upcoming</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('doctors')">Find Doctors</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('history')">History</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showTab('profile')">My Profile</button>
+            </li>
+        </ul>
+
+        
+        <div id="tab-upcoming">
+            <div class="card section-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Upcoming Appointments</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcomingTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FIND DOCTORS TAB -->
+        <div id="tab-doctors" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">Find a Doctor</h5>
+                <input type="text" class="form-control mb-3" id="doctorSearch"
+                       placeholder="Search by name or specialization..."
+                       oninput="loadDoctors()">
+                <div id="doctorsList"></div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="tab-history" class="d-none">
+            <div class="card section-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Appointment History</h5>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportCSV()">
+                        Export CSV
+                    </button>
+                </div>
+                <div class="alert alert-success d-none" id="exportMsg">
+                    Export started! You will receive an email when ready.
+                </div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div id="tab-profile" class="d-none">
+            <div class="card section-card p-4">
+                <h5 class="mb-3">My Profile</h5>
+                <div class="alert alert-success d-none" id="profileSuccess">
+                    Profile updated successfully!
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Age</label>
+                        <input type="number" class="form-control" id="profileAge">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-select" id="profileGender">
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Blood Group</label>
+                        <select class="form-select" id="profileBlood">
+                            <option value="">Select</option>
+                            <option>A+</option><option>A-</option>
+                            <option>B+</option><option>B-</option>
+                            <option>O+</option><option>O-</option>
+                            <option>AB+</option><option>AB-</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="profilePhone">
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" id="profileAddress" rows="2"></textarea>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateProfile()">
+                    Save Profile
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Appointment Modal -->
+    <div class="modal fade" id="bookModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Book Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="bookError"></div>
+                    <input type="hidden" id="bookDoctorId">
+                    <p><strong>Doctor: </strong><span id="bookDoctorName"></span></p>
+                    <div class="mb-3">
+                        <label class="form-label">Select Date</label>
+                        <select class="form-select" id="bookDate"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time Slot</label>
+                        <select class="form-select" id="bookSlot">
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="12:00 PM">12:00 PM</option>
+                            <option value="02:00 PM">02:00 PM</option>
+                            <option value="03:00 PM">03:00 PM</option>
+                            <option value="04:00 PM">04:00 PM</option>
+                            <option value="05:00 PM">05:00 PM</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Visit</label>
+                        <textarea class="form-control" id="bookReason" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary"
+                            onclick="confirmBooking()">Book Appointment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div class="modal fade" id="rescheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reschedule Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="rescheduleError"></div>
+                    <input type="hidden" id="rescheduleApptId">
+                    <div class="mb-3">
+                        <label class="form-label">New Date</label>
+                        <input type="date" class="form-control" id="rescheduleDate">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Time Slot</label>
+                        <select class="form-select" id="rescheduleSlot">
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="10:00 AM">10:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="12:00 PM">12:00 PM</option>
+                            <option value="02:00 PM">02:00 PM</option>
+                            <option value="03:00 PM">03:00 PM</option>
+                            <option value="04:00 PM">04:00 PM</option>
+                            <option value="05:00 PM">05:00 PM</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning"
+                            onclick="confirmReschedule()">Reschedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const token    = localStorage.getItem('token');
+        const role     = localStorage.getItem('role');
+        const username = localStorage.getItem('username');
+
+        if (!token || role !== 'patient') {
+            window.location.href = '../index.html';
+        }
+
+        document.getElementById('patientName').textContent = username;
+
+        const authHeader = {
+            'Content-Type' : 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+
+        // Load upcoming appointments
+        async function loadUpcoming() {
+            const res  = await fetch('/api/patient/dashboard',
+                                     { headers: authHeader });
+            const data = await res.json();
+
+            document.getElementById('upcomingCount').textContent =
+                data.total_upcoming;
+
+            const tbody = document.getElementById('upcomingTableBody');
+            tbody.innerHTML = '';
+
+            if (data.upcoming_appointments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            No upcoming appointments
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            data.upcoming_appointments.forEach(appt => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${appt.doctor_name}</td>
+                        <td>${appt.department || '-'}</td>
+                        <td>${appt.date}</td>
+                        <td>${appt.time_slot}</td>
+                        <td>${appt.reason || '-'}</td>
+                        <td><span class="badge bg-primary">${appt.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1"
+                                    onclick="openReschedule(${appt.appointment_id})">
+                                Reschedule
+                            </button>
+                            <button class="btn btn-sm btn-danger"
+                                    onclick="cancelAppointment(${appt.appointment_id})">
+                                Cancel
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Cancel appointment
+        async function cancelAppointment(apptId) {
+            if (!confirm('Are you sure you want to cancel this appointment?')) return;
+
+            const res  = await fetch(
+                `/api/patient/appointments/${apptId}/cancel`,
+                { method: 'PUT', headers: authHeader }
+            );
+            const data = await res.json();
+
+            if (res.ok) {
+                loadUpcoming();
+            } else {
+                alert(data.message || 'Failed to cancel appointment');
+            }
+        }
+
+        // Open reschedule modal
+        function openReschedule(apptId) {
+            document.getElementById('rescheduleApptId').value = apptId;
+            document.getElementById('rescheduleError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('rescheduleModal')).show();
+        }
+
+        // Confirm reschedule
+        async function confirmReschedule() {
+            const apptId = document.getElementById('rescheduleApptId').value;
+            const date   = document.getElementById('rescheduleDate').value;
+            const slot   = document.getElementById('rescheduleSlot').value;
+
+            if (!date) {
+                const err = document.getElementById('rescheduleError');
+                err.textContent = 'Please select a new date';
+                err.classList.remove('d-none');
+                return;
+            }
+
+            const res = await fetch(
+                `/api/patient/appointments/${apptId}/reschedule`,
+                {
+                    method : 'PUT',
+                    headers: authHeader,
+                    body   : JSON.stringify({ date, time_slot: slot })
+                }
+            );
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('rescheduleModal')
+                ).hide();
+                loadUpcoming();
+            } else {
+                const data = await res.json();
+                const err  = document.getElementById('rescheduleError');
+                err.textContent = data.message;
+                err.classList.remove('d-none');
+            }
+        }
+
+        // Load doctors list
+        async function loadDoctors() {
+            const search = document.getElementById('doctorSearch').value;
+            const res    = await fetch(
+                `/api/patient/doctors?search=${search}`,
+                { headers: authHeader }
+            );
+            const doctors  = await res.json();
+            const container = document.getElementById('doctorsList');
+            container.innerHTML = '';
+
+            if (doctors.length === 0) {
+                container.innerHTML = '<p class="text-muted">No doctors found</p>';
+                return;
+            }
+
+            doctors.forEach(doc => {
+                const avail = doc.availability.length > 0
+                    ? doc.availability.join(', ')
+                    : 'No availability set';
+
+                container.innerHTML += `
+                    <div class="doctor-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">Dr. ${doc.name}</h6>
+                                <p class="text-muted mb-1">
+                                    ${doc.department || 'General'} |
+                                    ${doc.qualification || '-'} |
+                                    ${doc.experience_years} years exp.
+                                </p>
+                                <small class="text-success">
+                                    Available: ${avail}
+                                </small>
+                            </div>
+                            <button class="btn btn-primary btn-sm"
+                                    onclick="openBookModal(${doc.doctor_id}, '${doc.name}', [${doc.availability.map(d => `'${d}'`).join(', ')}])">
+                                Book
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Open booking modal
+        function openBookModal(doctorId, doctorName, availability) {
+            document.getElementById('bookDoctorId').value      = doctorId;
+            document.getElementById('bookDoctorName').textContent = doctorName;
+            document.getElementById('bookError').classList.add('d-none');
+
+            const dateSelect = document.getElementById('bookDate');
+            dateSelect.innerHTML = '';
+
+            if (availability.length === 0) {
+                dateSelect.innerHTML = '<option value="">No dates available</option>';
+            } else {
+                availability.forEach(d => {
+                    dateSelect.innerHTML += `<option value="${d}">${d}</option>`;
+                });
+            }
+
+            new bootstrap.Modal(document.getElementById('bookModal')).show();
+        }
+
+        // Confirm booking
+        async function confirmBooking() {
+            const doctorId = document.getElementById('bookDoctorId').value;
+            const date     = document.getElementById('bookDate').value;
+            const timeSlot = document.getElementById('bookSlot').value;
+            const reason   = document.getElementById('bookReason').value;
+
+            if (!date) {
+                const err = document.getElementById('bookError');
+                err.textContent = 'Please select a date';
+                err.classList.remove('d-none');
+                return;
+            }
+
+            const res = await fetch('/api/patient/appointments', {
+                method : 'POST',
+                headers: authHeader,
+                body   : JSON.stringify({
+                    doctor_id: parseInt(doctorId),
+                    date,
+                    time_slot: timeSlot,
+                    reason
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById('bookModal')
+                ).hide();
+                loadUpcoming();
+            } else {
+                const err = document.getElementById('bookError');
+                err.textContent = data.message;
+                err.classList.remove('d-none');
+            }
+        }
+
+        // Load appointment history
+        async function loadHistory() {
+            const res       = await fetch('/api/patient/appointments/history',
+                                          { headers: authHeader });
+            const data      = await res.json();
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-muted">No appointment history found.</p>';
+                return;
+            }
+
+            data.forEach(appt => {
+                const badgeColor =
+                    appt.status === 'Booked'    ? 'bg-primary'   :
+                    appt.status === 'Completed' ? 'bg-success'   : 'bg-secondary';
+
+                // Build treatment section clearly
+                let treatmentHtml = '';
+                if (appt.status === 'Completed') {
+                    if (appt.treatment) {
+                        treatmentHtml = `
+                            <div class="mt-2 p-3 bg-light rounded border-start border-success border-3">
+                                <p class="mb-1">
+                                    <strong>Diagnosis:</strong>
+                                    ${appt.treatment.diagnosis || '-'}
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Prescription:</strong>
+                                    ${appt.treatment.prescription || '-'}
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Notes:</strong>
+                                    ${appt.treatment.notes || '-'}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Next Visit:</strong>
+                                    ${appt.treatment.next_visit || '-'}
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        treatmentHtml = `
+                            <div class="mt-2 p-2 bg-light rounded">
+                                <small class="text-muted">
+                                    Treatment not yet recorded by doctor.
+                                </small>
+                            </div>
+                        `;
+                    }
+                }
+
+                container.innerHTML += `
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>Dr. ${appt.doctor_name}</strong>
+                                <span class="text-muted ms-2">
+                                    ${appt.department || ''}
+                                </span>
+                            </div>
+                            <span class="badge ${badgeColor}">${appt.status}</span>
+                        </div>
+                        <p class="mb-1 mt-2">
+                            <strong>${appt.date}</strong>
+                            &nbsp; <strong>${appt.time_slot}</strong>
+                        </p>
+                        <p class="mb-0">
+                            <small class="text-muted">
+                                Reason: ${appt.reason || '-'}
+                            </small>
+                        </p>
+                        ${treatmentHtml}
+                    </div>
+                `;
+            });
+        }
+
+        // Export CSV
+        async function exportCSV() {
+            const res = await fetch('/api/patient/export-csv', {
+                method : 'POST',
+                headers: authHeader
+            });
+            if (res.ok) {
+                document.getElementById('exportMsg').classList.remove('d-none');
+                setTimeout(() => {
+                    document.getElementById('exportMsg').classList.add('d-none');
+                }, 4000);
+            }
+        }
+
+        // Load profile
+        async function loadProfile() {
+            const res  = await fetch('/api/patient/profile',
+                                     { headers: authHeader });
+            const data = await res.json();
+
+            document.getElementById('profileAge').value     = data.age || '';
+            document.getElementById('profileGender').value  = data.gender || '';
+            document.getElementById('profileBlood').value   = data.blood_group || '';
+            document.getElementById('profilePhone').value   = data.phone || '';
+            document.getElementById('profileAddress').value = data.address || '';
+        }
+
+        // Update profile
+        async function updateProfile() {
+            const res = await fetch('/api/patient/profile', {
+                method : 'PUT',
+                headers: authHeader,
+                body   : JSON.stringify({
+                    age        : parseInt(document.getElementById('profileAge').value) || null,
+                    gender     : document.getElementById('profileGender').value,
+                    blood_group: document.getElementById('profileBlood').value,
+                    phone      : document.getElementById('profilePhone').value,
+                    address    : document.getElementById('profileAddress').value
+                })
+            });
+
+            if (res.ok) {
+                document.getElementById('profileSuccess').classList.remove('d-none');
+                setTimeout(() => {
+                    document.getElementById('profileSuccess').classList.add('d-none');
+                }, 3000);
+            }
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            ['upcoming', 'doctors', 'history', 'profile'].forEach(t => {
+                document.getElementById('tab-' + t).classList.add('d-none');
+            });
+            document.getElementById('tab-' + tab).classList.remove('d-none');
+
+            document.querySelectorAll('#patientTabs .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (tab === 'doctors') loadDoctors();
+            if (tab === 'history') loadHistory();
+            if (tab === 'profile') loadProfile();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '../index.html';
+        }
+
+        // Initial load
+        loadUpcoming();
+    </script>
+</body>
+</html>

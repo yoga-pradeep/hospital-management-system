@@ -12,6 +12,7 @@ from routes.auth    import auth_bp
 from routes.admin   import admin_bp
 from routes.doctor  import doctor_bp
 from routes.patient import patient_bp
+from ai_assistant    import assistant_bp
 
 
 def create_app():
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(doctor_bp)
     app.register_blueprint(patient_bp)
+    app.register_blueprint(assistant_bp)
 
     @app.route('/')
     def home():

@@ -10,4 +10,5 @@ flask-mail
 
 # --- AI Assistant (MCP + local open-source LLM) ---
 mcp<2.0
-ollamapython-dotenv
+ollama
+python-dotenv
